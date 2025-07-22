@@ -3,6 +3,7 @@
 import csv
 import logging
 import os
+import sys
 import requests
 from requests.exceptions import SSLError
 from bs4 import BeautifulSoup
@@ -25,7 +26,7 @@ if not os.path.exists(BOOKMARKS_FILE):
     print(f"Error: Bookmarks.html not found in {script_dir}")
     print("Please place your Bookmarks.html file in the same directory "
           "as this script.")
-    exit(1)
+    sys.exit(1)
 
 # Parse HTML bookmarks file
 with open(BOOKMARKS_FILE, 'r', encoding='utf-8') as file:
@@ -41,20 +42,20 @@ results = []
 for link in tqdm(links, desc='Checking bookmarks', ncols=100):
     name = link['name']
     url = link['url']
-    link_status = 'Dead'
+    link_status = 'Dead'  # pylint: disable=invalid-name
     try:
         response = requests.get(url, timeout=10, allow_redirects=True)
         if response.history:
-            link_status = 'Redirected'
+            link_status = 'Redirected'  # pylint: disable=invalid-name
         elif response.status_code in (401, 403):
-            link_status = 'Login Required'
+            link_status = 'Login Required'  # pylint: disable=invalid-name
         elif (response.status_code == 404 or
               'page not found' in response.text.lower()):
-            link_status = 'Dead'
+            link_status = 'Dead'  # pylint: disable=invalid-name
         else:
-            link_status = 'Alive'
+            link_status = 'Alive'  # pylint: disable=invalid-name
     except SSLError as ssl_error:
-        link_status = 'SSL Error'
+        link_status = 'SSL Error'  # pylint: disable=invalid-name
         logging.error("SSL error on %s: %s", url, ssl_error)
     except (requests.exceptions.RequestException,
             requests.exceptions.Timeout,
@@ -65,7 +66,7 @@ for link in tqdm(links, desc='Checking bookmarks', ncols=100):
     logging.info("Checked: %s (%s) - %s", name, url, link_status)
 
 # Write CSV
-csv_filename = 'bookmark_check_results.csv'
+csv_filename = 'bookmark_check_results.csv'  # pylint: disable=invalid-name
 with open(csv_filename, 'w', newline='', encoding='utf-8') as csvfile:
     writer = csv.writer(csvfile)
     writer.writerow(['Bookmark Name', 'URL', 'Status'])
