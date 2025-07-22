@@ -1,3 +1,4 @@
+"""Bookmark Checker Script"""
 
 import csv
 import logging
@@ -7,42 +8,48 @@ from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 # Setup logging
-logging.basicConfig(filename='bookmark_check.log', level=logging.INFO, format='%(asctime)s %(message)s')
+logging.basicConfig(
+    filename='bookmark_check.log',
+    level=logging.INFO,
+    format='%(asctime)s %(message)s'
+)
 logging.info("Starting bookmark check")
 
 # Path to bookmarks file
-bookmarks_file = input("Enter path to Bookmarks.html: ").strip()
+BOOKMARKS_FILE = input("Enter path to Bookmarks.html: ").strip()
 
 # Parse HTML bookmarks file
-with open(bookmarks_file, 'r', encoding='utf-8') as f:
-    soup = BeautifulSoup(f, 'html.parser')
+with open(BOOKMARKS_FILE, 'r', encoding='utf-8') as file:
+    soup = BeautifulSoup(file, 'html.parser')
 
-links = []
-for a in soup.find_all('a'):
-    links.append({'name': a.text.strip(), 'url': a['href'].strip()})
+links = [
+    {'name': a_tag.text.strip(), 'url': a_tag['href'].strip()}
+    for a_tag in soup.find_all('a')
+]
 
 # Check links
 results = []
 for link in tqdm(links, desc='Checking bookmarks', ncols=100):
-    name, url = link['name'], link['url']
+    name = link['name']
+    url = link['url']
     status = 'Dead'
     try:
-        resp = requests.get(url, timeout=10, allow_redirects=True)
-        if resp.history:
+        response = requests.get(url, timeout=10, allow_redirects=True)
+        if response.history:
             status = 'Redirected'
-        elif resp.status_code in (401, 403):
+        elif response.status_code in (401, 403):
             status = 'Login Required'
-        elif resp.status_code == 404 or 'page not found' in resp.text.lower():
+        elif response.status_code == 404 or 'page not found' in response.text.lower():
             status = 'Dead'
         else:
             status = 'Alive'
-    except SSLError as e:
+    except SSLError as ssl_error:
         status = 'SSL Error'
-        logging.error(f"SSL error on {url}: {e}")
-    except Exception as e:
-        logging.error(f"Error checking {url}: {e}")
+        logging.error("SSL error on %s: %s", url, ssl_error)
+    except Exception as exc:
+        logging.error("Error checking %s: %s", url, exc)
     results.append([name, url, status])
-    logging.info(f"Checked: {name} ({url}) - {status}")
+    logging.info("Checked: %s (%s) - %s", name, url, status)
 
 # Write CSV
 with open('bookmark_check_results.csv', 'w', newline='', encoding='utf-8') as csvfile:
